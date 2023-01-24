@@ -60,7 +60,7 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           Icon(
-                            FluentIcons.arrow_download_24_filled,
+                            FluentIcons.save_24_filled,
                             size: 30,
                             color: accent.primary,
                           ),
@@ -84,15 +84,6 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                         style: TextStyle(
                           color: accent.primary,
                           fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '${AppLocalizations.of(context)!.yourDownloadedSongsHere}!',
-                        style: TextStyle(
-                          color: accent.primary,
-                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
