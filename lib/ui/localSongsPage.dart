@@ -1,6 +1,6 @@
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:musify/API/musify.dart';
 import 'package:musify/customWidgets/spinner.dart';
 import 'package:musify/services/audio_manager.dart';
@@ -54,13 +54,16 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                       height: 200,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: Theme.of(context).backgroundColor.withAlpha(30),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .background
+                            .withAlpha(30),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           Icon(
-                            MdiIcons.download,
+                            FluentIcons.save_24_filled,
                             size: 30,
                             color: accent.primary,
                           ),
@@ -84,15 +87,6 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                         style: TextStyle(
                           color: accent.primary,
                           fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '${AppLocalizations.of(context)!.yourDownloadedSongsHere}!',
-                        style: TextStyle(
-                          color: accent.primary,
-                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -166,7 +160,6 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                         borderRadius: BorderRadius.circular(20),
                         onTap: () {
                           playSong(lsong);
-                          Navigator.pushReplacementNamed(context, '/');
                         },
                         splashColor: accent.primary.withOpacity(0.4),
                         hoverColor: accent.primary.withOpacity(0.4),
@@ -190,7 +183,7 @@ class _LocalSongsPageState extends State<LocalSongsPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
-                                  MdiIcons.musicNoteOutline,
+                                  FluentIcons.music_note_1_24_regular,
                                   size: 25,
                                   color:
                                       accent.primary != const Color(0xFFFFFFFF)
