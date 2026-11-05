@@ -37,45 +37,40 @@ import 'package:lokeshmusic/utilities/url_launcher.dart';
 import 'package:lokeshmusic/widgets/auto_format_text.dart';
 
 const String checkUrl =
-    'https://raw.githubusercontent.com/lokesh/Lokeshmusic/update/check.json';
+    'https://raw.githubusercontent.com/lokesh12dev/Lokeshmusic/update/check.json';
 const String releasesUrl =
-    'https://api.github.com/repos/lokesh/Lokeshmusic/releases/latest';
-const String downloadUrlKey = 'url';
-const String downloadUrlArm64Key = 'arm64url';
-const String downloadFilename = 'Lokeshmusic.apk';
+    'https://api.github.com/repos/lokesh12dev/Lokeshmusic/releases/latest';
+const String releasesPageUrl =
+    'https://github.com/lokesh12dev/Lokeshmusic/releases/latest';
 
 Future<void> checkAppUpdates() async {
   // Update distribution targets Android APK builds only.
   if (!isMobilePlatform) return;
   try {
-    final response = await http.get(Uri.parse(checkUrl));
+    final response = await http.get(
+      Uri.parse(releasesUrl),
+      headers: const {'Accept': 'application/vnd.github+json'},
+    );
 
     if (response.statusCode != 200) {
       logger.log(
-        'Fetch update API (checkUrl) call returned status code ${response.statusCode}',
+        'Fetch update API (releasesUrl) returned status code ${response.statusCode}',
       );
       return;
     }
 
-    final map = json.decode(response.body) as Map<String, dynamic>;
-    announcementURL.value = map['announcementurl'];
-    final latestVersion = map['version'].toString();
+    final releasesResponse = json.decode(response.body) as Map<String, dynamic>;
+    final latestVersion =
+        (releasesResponse['tag_name'] ?? releasesResponse['name'] ?? '')
+            .toString();
 
-    if (!isLatestVersionHigher(appVersion, latestVersion)) {
+    if (latestVersion.isEmpty ||
+        !isLatestVersionHigher(appVersion, latestVersion)) {
       return;
     }
 
-    final releasesRequest = await http.get(Uri.parse(releasesUrl));
-
-    if (releasesRequest.statusCode != 200) {
-      logger.log(
-        'Fetch update API (releasesUrl) call returned status code ${response.statusCode}',
-      );
-      return;
-    }
-
-    final releasesResponse =
-        json.decode(releasesRequest.body) as Map<String, dynamic>;
+    final displayVersion = normalizeVersion(latestVersion);
+    final downloadUrl = await getReleaseDownloadUrl(releasesResponse);
 
     await showDialog(
       context: NavigationManager().context,
@@ -119,7 +114,7 @@ Future<void> checkAppUpdates() async {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'V$latestVersion',
+                  'V$displayVersion',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -139,7 +134,9 @@ Future<void> checkAppUpdates() async {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: SingleChildScrollView(
-                  child: AutoFormatText(text: releasesResponse['body']),
+                  child: AutoFormatText(
+                    text: releasesResponse['body']?.toString() ?? '',
+                  ),
                 ),
               ),
             ],
@@ -158,9 +155,8 @@ Future<void> checkAppUpdates() async {
             ),
             FilledButton.icon(
               onPressed: () {
-                getDownloadUrl(map).then(
-                  (url) => {launchURL(Uri.parse(url)), Navigator.pop(context)},
-                );
+                launchURL(Uri.parse(downloadUrl));
+                Navigator.pop(context);
               },
               icon: const Icon(FluentIcons.arrow_download_20_regular),
               label: Text(context.l10n!.download),
@@ -233,18 +229,33 @@ void showUpdateCheckDialog(BuildContext context) {
   );
 }
 
+/// Strips a leading `v` and any build metadata so tags like `v10.6.0` and
+/// versions like `10.6.0+186` compare cleanly.
+String normalizeVersion(String version) {
+  final trimmed = version.trim();
+  final withoutPrefix = trimmed.startsWith(RegExp('[vV]'))
+      ? trimmed.substring(1)
+      : trimmed;
+  return withoutPrefix.split('+').first;
+}
+
+List<int> _parseVersion(String version) {
+  return normalizeVersion(version).split('.').map((part) {
+    final match = RegExp(r'^\d+').firstMatch(part.trim());
+    return match == null ? 0 : int.parse(match.group(0)!);
+  }).toList();
+}
+
 bool isLatestVersionHigher(String appVersion, String latestVersion) {
-  final parsedAppVersion = appVersion.split('.');
-  final parsedAppLatestVersion = latestVersion.split('.');
+  final parsedAppVersion = _parseVersion(appVersion);
+  final parsedAppLatestVersion = _parseVersion(latestVersion);
   final length = parsedAppVersion.length > parsedAppLatestVersion.length
       ? parsedAppVersion.length
       : parsedAppLatestVersion.length;
   for (var i = 0; i < length; i++) {
-    final value1 = i < parsedAppVersion.length
-        ? int.parse(parsedAppVersion[i])
-        : 0;
+    final value1 = i < parsedAppVersion.length ? parsedAppVersion[i] : 0;
     final value2 = i < parsedAppLatestVersion.length
-        ? int.parse(parsedAppLatestVersion[i])
+        ? parsedAppLatestVersion[i]
         : 0;
     if (value2 > value1) {
       return true;
@@ -257,19 +268,39 @@ bool isLatestVersionHigher(String appVersion, String latestVersion) {
 }
 
 Future<String> getCPUArchitecture() async {
-  final info = await Process.run('uname', ['-m']);
-  final cpu = info.stdout.toString().replaceAll('\n', '');
-
-  return cpu;
+  try {
+    final info = await Process.run('uname', ['-m']);
+    return info.stdout.toString().trim();
+  } catch (_) {
+    return '';
+  }
 }
 
-Future<String> getDownloadUrl(Map<String, dynamic> map) async {
-  final cpuArchitecture = await getCPUArchitecture();
-  final url = cpuArchitecture == 'aarch64'
-      ? map[downloadUrlArm64Key].toString()
-      : map[downloadUrlKey].toString();
+/// Picks the best APK asset from a GitHub release, preferring the smaller
+/// arm64 build on 64-bit devices and the universal build elsewhere.
+Future<String> getReleaseDownloadUrl(Map<String, dynamic> release) async {
+  final assets = release['assets'] as List<dynamic>? ?? const [];
+  String? universal;
+  String? arm64;
+  String? firstApk;
 
-  return url;
+  for (final asset in assets) {
+    if (asset is! Map) continue;
+    final name = (asset['name'] ?? '').toString().toLowerCase();
+    final url = asset['browser_download_url']?.toString();
+    if (url == null || !name.endsWith('.apk')) continue;
+    firstApk ??= url;
+    if (name.contains('arm64')) {
+      arm64 = url;
+    } else if (name.contains('universal')) {
+      universal = url;
+    }
+  }
+
+  if (await getCPUArchitecture() == 'aarch64' && arm64 != null) {
+    return arm64;
+  }
+  return universal ?? arm64 ?? firstApk ?? releasesPageUrl;
 }
 
 /// Fetch only the announcement URL from the `check.json` file and set the
