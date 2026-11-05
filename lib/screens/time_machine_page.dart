@@ -22,7 +22,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -101,7 +100,7 @@ class _TimeMachinePageState extends State<TimeMachinePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              FluentIcons.clock_24_regular,
+              Icons.access_time,
               size: 42,
               color: colorScheme.primary,
             ),
@@ -448,7 +447,7 @@ class _PeriodSection extends StatelessWidget {
                   tooltip: context.l10n!.shareRecap,
                   onPressed: onShare,
                   icon: Icon(
-                    FluentIcons.share_24_regular,
+                    Icons.share,
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -476,7 +475,7 @@ class _ViewMoreButton extends StatelessWidget {
         width: double.infinity,
         child: FilledButton.tonalIcon(
           onPressed: onPressed,
-          icon: const Icon(FluentIcons.more_horizontal_24_regular),
+          icon: const Icon(Icons.more_horiz),
           label: Text(context.l10n!.tapToView),
         ),
       ),

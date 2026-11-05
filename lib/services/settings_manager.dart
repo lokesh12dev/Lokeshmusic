@@ -37,7 +37,8 @@ final playNextSongAutomatically = ValueNotifier<bool>(
 );
 
 final useSystemColor = ValueNotifier<bool>(
-  Hive.box('settings').get('useSystemColor', defaultValue: true),
+  // Spotify skin by default; Material You stays opt-in.
+  Hive.box('settings').get('useSystemColor', defaultValue: false),
 );
 
 final usePureBlackColor = ValueNotifier<bool>(
@@ -97,8 +98,9 @@ Locale languageSetting = getLocaleFromLanguageCode(
   Hive.box('settings').get('languageCode', defaultValue: 'en') as String,
 );
 
-int themeModeSetting =
-    Hive.box('settings').get('themeIndex', defaultValue: 0) as int;
+int themeModeSetting = Hive.box(
+  'settings',
+).get('themeIndex', defaultValue: ThemeMode.dark.index) as int;
 
 String playlistSortSetting = Hive.box('settings')
     .get('playlistSortType', defaultValue: PlaylistSortType.default_.name);
@@ -107,7 +109,7 @@ String offlineSortSetting = Hive.box('settings')
     .get('offlineSortType', defaultValue: OfflineSortType.default_.name);
 
 Color primaryColorSetting = Color(
-  Hive.box('settings').get('accentColor', defaultValue: 0xff91cef4),
+  Hive.box('settings').get('accentColor', defaultValue: 0xFF1DB954),
 );
 
 final shuffleNotifier = ValueNotifier<bool>(
@@ -138,7 +140,7 @@ void reloadSettingsFromStorage() {
     'playNextSongAutomatically',
     defaultValue: false,
   );
-  useSystemColor.value = settings.get('useSystemColor', defaultValue: true);
+  useSystemColor.value = settings.get('useSystemColor', defaultValue: false);
   usePureBlackColor.value = settings.get(
     'usePureBlackColor',
     defaultValue: false,
@@ -172,7 +174,10 @@ void reloadSettingsFromStorage() {
   );
   equalizerBandGains.value = _readEqualizerGains();
 
-  final restoredThemeIndex = settings.get('themeIndex', defaultValue: 0);
+  final restoredThemeIndex = settings.get(
+    'themeIndex',
+    defaultValue: ThemeMode.dark.index,
+  );
   if (restoredThemeIndex is int) themeModeSetting = restoredThemeIndex;
 
   final restoredLanguageCode = settings.get('languageCode', defaultValue: 'en');
@@ -198,7 +203,7 @@ void reloadSettingsFromStorage() {
 
   final restoredAccentColor = settings.get(
     'accentColor',
-    defaultValue: 0xff91cef4,
+    defaultValue: 0xFF1DB954,
   );
   if (restoredAccentColor is int) {
     primaryColorSetting = Color(restoredAccentColor);

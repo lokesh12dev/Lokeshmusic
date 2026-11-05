@@ -576,7 +576,9 @@ class ProxyManager {
     if (!useProxy.value && !allowWhenDisabled) return null;
     StreamManifest? manifest;
     var attempts = 0;
-    const maxAttempts = 5;
+    // Keep the failure path bounded: each attempt can wait up to 5 seconds,
+    // so retrying more than a few dead proxies leaves the UI spinning.
+    const maxAttempts = 3;
     do {
       if (attempts++ >= maxAttempts) break;
       final proxy = await _getRandomProxy(allowWhenDisabled: allowWhenDisabled);

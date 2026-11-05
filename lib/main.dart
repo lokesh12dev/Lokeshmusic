@@ -242,42 +242,57 @@ class _LokeshmusicState extends State<Lokeshmusic> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic color queries the Android wallpaper palette through a platform
+    // channel. The Spotify skin is the default, so only pay that cost when the
+    // user explicitly opts into system colors.
+    if (!useSystemColor.value) {
+      return _buildApp(lightColorScheme: null, darkColorScheme: null);
+    }
+
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
-        final colorScheme = getAppColorScheme(
-          lightColorScheme,
-          darkColorScheme,
-        );
-
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarContrastEnforced: true,
-            statusBarBrightness: brightness == Brightness.dark
-                ? Brightness.light
-                : Brightness.dark,
-            statusBarIconBrightness: brightness == Brightness.dark
-                ? Brightness.light
-                : Brightness.dark,
-            systemNavigationBarIconBrightness: brightness == Brightness.dark
-                ? Brightness.light
-                : Brightness.dark,
-          ),
-          child: MaterialApp.router(
-            themeMode: themeMode,
-            darkTheme: getAppTheme(colorScheme),
-            theme: getAppTheme(colorScheme),
-            localizationsDelegates: [
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: appSupportedLocales,
-            locale: languageSetting,
-            routerConfig: NavigationManager.router,
-          ),
+        return _buildApp(
+          lightColorScheme: lightColorScheme,
+          darkColorScheme: darkColorScheme,
         );
       },
+    );
+  }
+
+  Widget _buildApp({
+    required ColorScheme? lightColorScheme,
+    required ColorScheme? darkColorScheme,
+  }) {
+    final colorScheme = getAppColorScheme(lightColorScheme, darkColorScheme);
+    final appTheme = getAppTheme(colorScheme);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: true,
+        statusBarBrightness: brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarIconBrightness: brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarIconBrightness: brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+      child: MaterialApp.router(
+        themeMode: themeMode,
+        darkTheme: appTheme,
+        theme: appTheme,
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: appSupportedLocales,
+        locale: languageSetting,
+        routerConfig: NavigationManager.router,
+      ),
     );
   }
 }
@@ -290,6 +305,10 @@ void main() async {
 }
 
 Future<void> initialisation() async {
+  // Resolve the app documents directory while the audio service starts up
+  // instead of serializing two independent platform calls.
+  final applicationDirFuture = getApplicationDocumentsDirectory();
+
   try {
     await Hive.initFlutter();
 
@@ -380,7 +399,8 @@ Future<void> initialisation() async {
         ]),
         canGoPrevious: () => audioHandler.hasPrevious,
         raise: () =>
-            const MethodChannel('lokeshmusic/window').invokeMethod<void>('raise'),
+            const MethodChannel('lokeshmusic/window')
+                .invokeMethod<void>('raise'),
         position: () => audioHandler.currentPositionData.position,
         onError: (error, stackTrace) => logger.log(
           'Linux media controls error',
@@ -422,12 +442,13 @@ Future<void> initialisation() async {
     logger.log('Initialization Error', error: e, stackTrace: stackTrace);
   }
 
-  applicationDirPath = (await getApplicationDocumentsDirectory()).path;
+  applicationDirPath = (await applicationDirFuture).path;
   await FilePaths.ensureDirectoriesExist();
 }
 
 void handleIncomingLink(Uri? uri) async {
-  if (uri == null || uri.scheme != 'lokeshmusic' || uri.host != 'playlist') return;
+  if (uri == null || uri.scheme != 'lokeshmusic' || uri.host != 'playlist')
+    return;
 
   if (uri.pathSegments.length < 2 || uri.pathSegments[0] != 'custom') return;
 

@@ -1,8 +1,8 @@
 name: lokeshmusic
 description: Lokeshmusic - Music Streaming app made in Flutter!
-homepage: https://github.com/lokesh/Lokeshmusic
-repository: https://github.com/lokesh/Lokeshmusic
-issue_tracker: https://github.com/lokesh/Lokeshmusic/issues
+homepage: https://github.com/lokesh12dev/Lokeshmusic
+repository: https://github.com/lokesh12dev/Lokeshmusic
+issue_tracker: https://github.com/lokesh12dev/Lokeshmusic/issues
 
 publish_to: 'none'
 version: 10.6.0+186 # run update.sh after changing the version

@@ -21,6 +21,7 @@ if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(inputStream)
     }
 }
+val hasReleaseSigning = keystorePropertiesFile.exists()
 
 android {
     namespace = "com.lokesh.lokeshmusic"
@@ -70,13 +71,14 @@ android {
 
     signingConfigs {
         create("release") {
-            // From decoded key
-            storeFile = file("key.jks")
-
-            // From key.properties
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storePassword = keystoreProperties["storePassword"] as String?
+            if (hasReleaseSigning) {
+                // Relative paths resolve against android/app; absolute paths
+                // are supported so the keystore can live outside the repo.
+                storeFile = file(keystoreProperties.getProperty("storeFile") ?: "key.jks")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
         }
     }
 
@@ -93,7 +95,15 @@ android {
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // CI and maintainer builds sign with the release keystore when
+            // key.properties is present. Local release builds without it fall
+            // back to debug signing so they remain installable for testing,
+            // but must never be published as official binaries.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

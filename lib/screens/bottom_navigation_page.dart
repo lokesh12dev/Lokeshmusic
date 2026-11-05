@@ -19,7 +19,6 @@
  *     please visit: https://github.com/lokesh/Lokeshmusic
  */
 
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -27,9 +26,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lokeshmusic/constants/app_constants.dart';
 import 'package:lokeshmusic/extensions/l10n.dart';
 import 'package:lokeshmusic/main.dart';
+import 'package:lokeshmusic/services/navigation_history.dart';
+import 'package:lokeshmusic/services/router_service.dart';
 import 'package:lokeshmusic/services/settings_manager.dart';
 import 'package:lokeshmusic/utilities/flutter_bottom_sheet.dart'
     show closeCurrentBottomSheet;
+import 'package:lokeshmusic/widgets/desktop/desktop_shell.dart';
 import 'package:lokeshmusic/widgets/mini_player.dart';
 
 class BottomNavigationPage extends StatefulWidget {
@@ -50,6 +52,13 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
   /// Track the previously selected shell branch to detect reselects.
   int? _previousShellIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    // Powers the desktop shell's back / forward buttons.
+    NavigationHistory.instance.attach(NavigationManager.router);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +87,17 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final isLargeScreen = MediaQuery.of(context).size.width >= 600;
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isDesktop = screenWidth >= desktopShellBreakpoint;
+              final isLargeScreen = screenWidth >= 600;
               final items = _getNavigationItems(isOfflineMode);
+
+              if (isDesktop) {
+                return DesktopShell(
+                  navigationShell: widget.child,
+                  onDestinationSelected: _onTabTapped,
+                );
+              }
 
               return Scaffold(
                 body: SafeArea(
@@ -99,7 +117,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                               .toList(),
                           selectedIndex: _getCurrentIndex(items, isOfflineMode),
                           onDestinationSelected: (index) =>
-                              _onTabTapped(index, items),
+                              _onTabTapped(items[index].shellIndex),
                         ),
                       Expanded(
                         child: StreamBuilder<bool>(
@@ -147,7 +165,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
                                   .onlyShowSelected
                             : NavigationDestinationLabelBehavior.alwaysHide,
                         onDestinationSelected: (index) =>
-                            _onTabTapped(index, items),
+                            _onTabTapped(items[index].shellIndex),
                         destinations: items
                             .map(
                               (item) => NavigationDestination(
@@ -170,8 +188,8 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   List<_NavigationItem> _getNavigationItems(bool isOfflineMode) {
     final items = <_NavigationItem>[
       _NavigationItem(
-        icon: FluentIcons.home_24_regular,
-        selectedIcon: FluentIcons.home_24_filled,
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home,
         label: context.l10n?.home ?? 'Home',
         shellIndex: 0,
       ),
@@ -181,8 +199,8 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     if (!isOfflineMode) {
       items.add(
         _NavigationItem(
-          icon: FluentIcons.search_24_regular,
-          selectedIcon: FluentIcons.search_24_filled,
+          icon: Icons.search_outlined,
+          selectedIcon: Icons.search,
           label: context.l10n?.search ?? 'Search',
           shellIndex: 1,
         ),
@@ -191,14 +209,14 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
 
     items.addAll([
       _NavigationItem(
-        icon: FluentIcons.book_24_regular,
-        selectedIcon: FluentIcons.book_24_filled,
+        icon: Icons.library_music_outlined,
+        selectedIcon: Icons.library_music,
         label: context.l10n?.library ?? 'Library',
         shellIndex: 2,
       ),
       _NavigationItem(
-        icon: FluentIcons.settings_24_regular,
-        selectedIcon: FluentIcons.settings_24_filled,
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
         label: context.l10n?.settings ?? 'Settings',
         shellIndex: 3,
       ),
@@ -219,24 +237,21 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     }
   }
 
-  void _onTabTapped(int index, List<_NavigationItem> items) {
-    if (index < items.length) {
-      final item = items[index];
-      final isReselect = _previousShellIndex == item.shellIndex;
+  void _onTabTapped(int shellIndex) {
+    final isReselect = _previousShellIndex == shellIndex;
 
-      // Close any open bottom sheet before switching tabs
-      closeCurrentBottomSheet();
+    // Close any open bottom sheet before switching tabs
+    closeCurrentBottomSheet();
 
-      // If user taps the same tab again, reset it to initial state.
-      // Otherwise, preserve the branch state.
-      if (isReselect) {
-        widget.child.goBranch(item.shellIndex, initialLocation: true);
-      } else {
-        widget.child.goBranch(item.shellIndex);
-      }
-
-      _previousShellIndex = item.shellIndex;
+    // If user taps the same tab again, reset it to initial state.
+    // Otherwise, preserve the branch state.
+    if (isReselect) {
+      widget.child.goBranch(shellIndex, initialLocation: true);
+    } else {
+      widget.child.goBranch(shellIndex);
     }
+
+    _previousShellIndex = shellIndex;
   }
 
   int _getCurrentIndex(List<_NavigationItem> items, bool isOfflineMode) {

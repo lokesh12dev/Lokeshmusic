@@ -19,7 +19,6 @@
  *     please visit: https://github.com/lokesh/Lokeshmusic
  */
 
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -317,7 +316,7 @@ class NavigationManager {
             child: PlaylistPage(
               playlistId: state.pathParameters['artistId'] ?? '',
               playlistData: _extraAsMap(state.extra),
-              cubeIcon: FluentIcons.person_24_filled,
+              cubeIcon: Icons.person,
               isArtist: true,
             ),
             state: state,
@@ -336,7 +335,7 @@ class NavigationManager {
         child: PlaylistPage(
           playlistId: state.pathParameters['albumId'] ?? '',
           playlistData: _extraAsMap(state.extra),
-          cubeIcon: FluentIcons.cd_16_regular,
+          cubeIcon: Icons.album,
         ),
         state: state,
       ),
