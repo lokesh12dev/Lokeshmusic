@@ -1,0 +1,53 @@
+/*
+ *     Copyright (C) 2026 Lokesh
+ *
+ *     Lokeshmusic is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     Lokeshmusic is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *
+ *     For more information about Lokeshmusic, including how to contribute,
+ *     please visit: https://github.com/lokesh/Lokeshmusic
+ */
+
+import 'package:lokeshmusic/widgets/marquee.dart';
+import 'package:material_ui/material_ui.dart';
+
+class MarqueeTextWidget extends StatelessWidget {
+  const MarqueeTextWidget({
+    super.key,
+    required this.text,
+    required this.fontColor,
+    required this.fontSize,
+    required this.fontWeight,
+  });
+  final String text;
+  final Color fontColor;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return MarqueeWidget(
+      backDuration: const Duration(seconds: 1),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: fontColor,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
